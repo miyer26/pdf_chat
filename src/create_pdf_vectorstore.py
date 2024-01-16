@@ -1,11 +1,10 @@
-from langchain_community.document_loaders import PyPDFLoader
+from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_core.documents.base import Document
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain.vectorstores import Chroma
+from langchain.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_community.vectorstores import Chroma
 from typing import List, Union
 
-def get_text_from_pdf(pdf_docs: List[Union[str, bytes]]) -> List[Document]:
+def get_text_from_pdf(pdf_docs: List[Union[str, bytes]]) -> str:
     """
     Extracts text content from a list of PDF documents.
 
@@ -31,15 +30,16 @@ def get_text_from_pdf(pdf_docs: List[Union[str, bytes]]) -> List[Document]:
         >>> print(text_content)
     """
 
-    docs = []
+    text=""
 
     for pdf in pdf_docs:
-        pdf_reader=PyPDFLoader(pdf)
-        docs.extend(pdf_reader.load())
+        pdf_reader=PdfReader(pdf)
+        for page in pdf_reader.pages:
+            text += page.extract_text()
 
-    return docs
+    return text
 
-def get_text_chunks(text: str, chunk_size: int=5000, chunk_overlap: int=1000) -> List[Document]:
+def get_text_chunks(text: str, chunk_size: int=5000, chunk_overlap: int=1000) -> str:
     """
     Splits a given text into chunks using a RecursiveCharacterTextSplitter.
 
@@ -68,11 +68,13 @@ def get_text_chunks(text: str, chunk_size: int=5000, chunk_overlap: int=1000) ->
     """
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size,
                                                    chunk_overlap=chunk_overlap)
-    chunks = text_splitter.split_documents(text)
+    chunks = text_splitter.split_text(text)
     return chunks
 
-def create_vectorstore(text_chunks: List[Document],
-                       emb_model: str="models/embedding-001") -> Chroma:
+def create_vectorstore(text_chunks: str,
+                       hf_token: str,
+                       embedding_model: str = "BAAI/bge-base-en-v1.5",
+                       ) -> Chroma:
     """
     Creates a vector store using text chunks and an embedding model.
 
@@ -87,7 +89,11 @@ def create_vectorstore(text_chunks: List[Document],
             embedding model.
     """
 
-    embedding = GoogleGenerativeAIEmbeddings(model=emb_model)
-    vector_store = Chroma.from_documents(documents=text_chunks, embedding=embedding)
+    embedding = HuggingFaceInferenceAPIEmbeddings(
+        api_key = hf_token,
+        model_name = embedding_model
+    )
+    
+    vector_store = Chroma.from_texts(texts=text_chunks, embedding=embedding)
 
     return vector_store
