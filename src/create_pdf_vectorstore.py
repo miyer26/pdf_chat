@@ -1,11 +1,11 @@
-from PyPDF2 import PdfReader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents.base import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain.vectorstores import Chroma
 from typing import List, Union
 
-def get_text_from_pdf(pdf_docs: List[Union[str, bytes]]) -> str:
+def get_text_from_pdf(pdf_docs: List[Union[str, bytes]]) -> List[Document]:
     """
     Extracts text content from a list of PDF documents.
 
@@ -31,14 +31,13 @@ def get_text_from_pdf(pdf_docs: List[Union[str, bytes]]) -> str:
         >>> print(text_content)
     """
 
-    text=""
+    docs = []
 
     for pdf in pdf_docs:
-        pdf_reader=PdfReader(pdf)
-        for page in pdf_reader.pages:
-            text += page.extract_text
+        pdf_reader=PyPDFLoader(pdf)
+        docs.extend(pdf_reader.load())
 
-    return text
+    return docs
 
 def get_text_chunks(text: str, chunk_size: int=5000, chunk_overlap: int=1000) -> List[Document]:
     """
@@ -69,7 +68,7 @@ def get_text_chunks(text: str, chunk_size: int=5000, chunk_overlap: int=1000) ->
     """
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size,
                                                    chunk_overlap=chunk_overlap)
-    chunks = text_splitter.split_text(text)
+    chunks = text_splitter.split_documents(text)
     return chunks
 
 def create_vectorstore(text_chunks: List[Document],
