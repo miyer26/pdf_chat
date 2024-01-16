@@ -2,7 +2,7 @@ from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents.base import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain.vectorstores import Chroma
 from typing import List, Union
 
 def get_text_from_pdf(pdf_docs: List[Union[str, bytes]]) -> str:
