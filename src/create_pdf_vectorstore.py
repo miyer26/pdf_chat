@@ -2,7 +2,7 @@ from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents.base import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 from typing import List, Union
 
 def get_text_from_pdf(pdf_docs: List[Union[str, bytes]]) -> str:
@@ -37,7 +37,7 @@ def get_text_from_pdf(pdf_docs: List[Union[str, bytes]]) -> str:
         pdf_reader=PdfReader(pdf)
         for page in pdf_reader.pages:
             text += page.extract_text
-    
+
     return text
 
 def get_text_chunks(text: str, chunk_size: int=5000, chunk_overlap: int=1000) -> List[Document]:
@@ -90,6 +90,5 @@ def create_vectorstore(text_chunks: List[Document],
 
     embedding = GoogleGenerativeAIEmbeddings(model=emb_model)
     vector_store = Chroma.from_documents(documents=text_chunks, embedding=embedding)
-    vector_store.save_local("faiss_index")
 
     return vector_store
