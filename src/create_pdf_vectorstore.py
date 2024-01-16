@@ -39,7 +39,7 @@ def get_text_from_pdf(pdf_docs: List[Union[str, bytes]]) -> str:
 
     return text
 
-def get_text_chunks(text: str, chunk_size: int=5000, chunk_overlap: int=1000) -> str:
+def get_text_chunks(text: str, chunk_size: int=1000, chunk_overlap: int=100) -> str:
     """
     Splits a given text into chunks using a RecursiveCharacterTextSplitter.
 
@@ -93,7 +93,7 @@ def create_vectorstore(text_chunks: str,
         api_key = hf_token,
         model_name = embedding_model
     )
-    
+
     vector_store = Chroma.from_texts(texts=text_chunks, embedding=embedding)
 
     return vector_store
