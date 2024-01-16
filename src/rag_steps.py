@@ -1,8 +1,9 @@
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.vectorstores import Chroma
+from langchain.llms import HuggingFaceHub
+import os
 
 def create_conversational_chain() -> StuffDocumentsChain:
     """
@@ -12,45 +13,33 @@ def create_conversational_chain() -> StuffDocumentsChain:
     Returns:
         StuffDocumentsChain: A conversational chain tailored for providing detailed answers
             based on context, with citations. The chain is designed for answering questions
-            using a specified GoogleGenerativeAI model.
-
-    Notes:
-        - The function initializes a ChatGoogleGenerativeAI model configured for informative
-          assistance with safety settings to block harassment and hate speech.
-        - The prompt_template defines the structure for generating prompts, incorporating
-          the context and question placeholders for dynamic input.
-        - The chain is loaded using the specified model, chain_type="stuff", and the
-          configured prompt template.
+            using a specified LLM model.
     """
+ 
     prompt_template="""
-    System: You are an informative assistant. Provide a detailed answer based on the 
-    context that is provided and provide a citation. If the answer is not present
-    in the context, explicitly mention that.
-    Context: {context} \n
-    Question: {question} \n
+    Only sse the context below to answer the question provided. If the question is not relevant to the context, explicitly state 
+    "This question is is irrelevant to the document".
+    Do not make up an answer.
 
-    Answer:    
+    Context:\n {context} \n
+    Question:\n {question}\n
+
+    Only return the answer and nothing else.
+    Answer:
     """
 
-    model = ChatGoogleGenerativeAI(model="gemini-pro", 
-                                   temperature=0.3,
-                                   safety_settings=[
-        {
-            "category": "HARM_CATEGORY_HARASSMENT",
-            "threshold": "BLOCK_NONE",
-        },
-        {
-            "category": "HARM_CATEGORY_HATE_SPEECH",
-            "threshold": "BLOCK_NONE",
-        },
-    ])
+    hf_token = os.getenv('HUGGINGFACEHUB_API_TOKEN')
+
+    model = HuggingFaceHub(repo_id="google/flan-t5-base",
+                           model_kwargs={"temperature":0.3, "max_length":200},
+                           huggingfacehub_api_token=hf_token)
 
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
 
     return chain
 
-def get_response(user_question: str, vector_store: Chroma) -> str:
+def get_response(user_question: str, vector_store: Chroma):
     """
     Retrieves and generates a response to a user's question using a conversational chain.
 
@@ -77,7 +66,7 @@ def get_response(user_question: str, vector_store: Chroma) -> str:
     retriever = vector_store.as_retriever(search_type='mmr', search_kwargs={"k":10})
     context = retriever.get_relevant_documents(user_question)
     chain = create_conversational_chain()
-    stuff_answer = chain({"context": context, "question": user_question},
+    stuff_answer = chain({"input_documents":context, "question":user_question},
                          return_only_outputs=True)
-    
-    return stuff_answer
+
+    return stuff_answer["output_text"]
