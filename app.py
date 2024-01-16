@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-import google.generativeai as genai
 
 from dotenv import load_dotenv
 
@@ -8,14 +7,14 @@ from src.create_pdf_vectorstore import get_text_from_pdf, get_text_chunks, creat
 from src.rag_steps import get_response
 
 load_dotenv()
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-
+hf_token = os.getenv('HUGGINGFACEHUB_API_TOKEN')
 
 
 def main():
     st.set_page_config("Chat PDF")
     st.header("Chat with PDF using Gemini")
 
+    vector_store = None
     user_question = st.text_input("Ask a Question from the PDF Files")
 
     with st.sidebar:
@@ -25,13 +24,19 @@ def main():
                                     accept_multiple_files=True)
         if st.button("Submit & Process"):
             with st.spinner("Processing..."):
-                raw_text = get_text_from_pdf(pdf_docs)
-                text_chunks = get_text_chunks(raw_text)
-                vector_store = create_vectorstore(text_chunks)
 
-    response = get_response(user_question, vector_store=vector_store)
-    st.success("Done")
-    st.write("Reply: ", response["output_text"])
+                raw_text = get_text_from_pdf(pdf_docs)
+                text_chunks = get_text_chunks(raw_text, chunk_size=256)
+                vector_store = create_vectorstore(text_chunks, hf_token)
+                st.session_state.vector_store = vector_store
+                st.success("Done")
+
+        
+    if st.button("Submit Questions"):
+        with st.spinner("Generating..."):
+            response = get_response(user_question, vector_store=st.session_state.vector_store)
+            st.write(response)
+
 
 
 if __name__ == "__main__":
