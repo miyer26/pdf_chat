@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 
 from src.create_pdf_vectorstore import get_text_from_pdf, get_text_chunks, create_vectorstore
 from src.rag_steps import get_response, get_llm_model, RAGAugmentation
-from src.augmented_rag_methods import synth_queries
 
 load_dotenv()
 hf_token = os.getenv('HUGGINGFACEHUB_API_TOKEN')
@@ -32,7 +31,6 @@ def main():
                 st.session_state.vector_store = vector_store
                 st.success("Done")
 
-        
     if st.button("Submit Questions"):
         with st.spinner("Generating..."):
             response = get_response(user_question,
