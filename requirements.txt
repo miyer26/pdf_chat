@@ -4,4 +4,4 @@ python-dotenv
 langchain
 pypdf
 chromadb
-langchain-google-ai
+sentence_transformers
