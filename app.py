@@ -4,7 +4,8 @@ import os
 from dotenv import load_dotenv
 
 from src.create_pdf_vectorstore import get_text_from_pdf, get_text_chunks, create_vectorstore
-from src.rag_steps import get_response
+from src.rag_steps import get_response, get_llm_model, RAGAugmentation
+from src.augmented_rag_methods import synth_queries
 
 load_dotenv()
 hf_token = os.getenv('HUGGINGFACEHUB_API_TOKEN')
@@ -34,9 +35,17 @@ def main():
         
     if st.button("Submit Questions"):
         with st.spinner("Generating..."):
-            response = get_response(user_question, vector_store=st.session_state.vector_store)
+            response = get_response(user_question,
+                                    vector_store=st.session_state.vector_store,
+                                    n_rank = 3)
             st.write(response)
 
+    if st.button("Synthesize queries"):
+        with st.spinner("Generating..."):
+            llm = get_llm_model(model_repo="HuggingFaceH4/zephyr-7b-beta", temperature=0.2)
+            augmentation = RAGAugmentation()
+            response = augmentation.synth_queries(user_question, llm)
+            st.write(response)
 
 
 if __name__ == "__main__":
